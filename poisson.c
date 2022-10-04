@@ -53,12 +53,12 @@ static bool debug = false;
  */
 double* poisson_neumann (int n, double *source, int iterations, int threads, float delta)
 {	
-    int i_next = 0;
-    int i_prev = 0;
-    int j_next = 0;
-    int j_prev = 0;
-    int k_next = 0;
-    int k_prev = 0;
+    double i_next = 0;
+    double i_prev = 0;
+    double j_next = 0;
+    double j_prev = 0;
+    double k_next = 0;
+    double k_prev = 0;
 
     int t = 0;
     int i = 0;
@@ -90,52 +90,74 @@ double* poisson_neumann (int n, double *source, int iterations, int threads, flo
     
     for (t = 0; t < iterations; t++)
     {
-		for (i = 0; i < n; i++)
+        for (k = 0; k < n; k++)
 		{
-			if (i==0)
-			{
-                i_next = curr[n*n*k + n*j + i+1];
-				i_prev = i_next;
-            } else if (i==n-1)
-            {
-                i_prev = curr[n*n*k + n*j + i-1];
-                i_next = i_prev;
-            } else
-            {
-                i_next = curr[n*n*k + n*j + i+1];
-                i_prev = curr[n*n*k + n*j + i-1];
-            }
 			for (j = 0; j < n; j++)
 			{
-                if (j==0)
-			    {
-                    j_next = curr[n*n*k + n*(j+1) + i];
-				    j_prev = j_next;
-                } else if (j==n-1)
-                {
-                    j_prev = curr[n*n*k + n*(j-1) + i];
-                    j_next = j_prev;
-                } else
-                {
-                    j_next = curr[n*n*k + n*(j+1) + i];
-                    j_prev = curr[n*n*k + n*(j-1) + i];
-                }
-				for (k = 0; k < n; k++)
-				{
+				for (i = 0; i < n; i++)
+				    {
+                    if (i==0)
+			        {
+                        i_next = curr[n*n*k + n*j + i+1];
+				        i_prev = i_next;
+                    } else if (i==n-1)
+                    {
+                        i_prev = curr[n*n*k + n*j + i-1];
+                        i_next = i_prev;
+                    } else
+                    {
+                        i_next = curr[n*n*k + n*j + i+1];
+                        i_prev = curr[n*n*k + n*j + i-1];
+                    }
+                    if (j==0)
+			        {
+                        j_next = curr[n*n*k + n*(j+1) + i];
+				        j_prev = j_next;
+                    } else if (j==n-1)
+                    {
+                        j_prev = curr[n*n*k + n*(j-1) + i];
+                        j_next = j_prev;
+                    } else
+                    {
+                        j_next = curr[n*n*k + n*(j+1) + i];
+                        j_prev = curr[n*n*k + n*(j-1) + i];
+                    }
 					if (k == 0)
 					{
                         k_next = curr[n*n*(k+1) + n*j + i];
 				        k_prev = k_next;
-                    } else if (j==n-1)
+                    } else if (k==n-1)
                     {
-                        j_prev = curr[n*n*(k+1) + n*j + i];
-                        j_next = j_prev;
+                        k_prev = curr[n*n*(k-1) + n*j + i];
+                        k_next = k_prev;
                     } else
                     {
-                        j_next = curr[n*n*(k+1) + n*j + i];
-                        j_prev = curr[n*n*(k+1) + n*j + i];
+                        k_next = curr[n*n*(k+1) + n*j + i];
+                        k_prev = curr[n*n*(k-1) + n*j + i];
                     }
                     
+                    next[n*n*k + n*j + i] = (1/6.0)*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+                    // printf("%lf\n", next[n*n*k + n*j + i]);
+                    // curr = next;
+                }
+            }
+        }
+        // printf("%lf\n", next[n*n*k + n*j + i]);
+
+        // for (int x = 0; x < n; ++x)
+        // {
+        // for (int y = 0; y < n; ++y)
+        //     {
+        //         printf ("%0.5f ", next[((n / 2) * n + y) * n + x]);
+        //     }
+        //     printf ("\n");
+        // }
+
+
+        double *temp = next;
+        next = curr;
+        curr = temp;
+    }       
 
 	
     // Free one of the buffers and return the correct answer in the other.
