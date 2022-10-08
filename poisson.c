@@ -34,6 +34,7 @@
  * multithreading (see also threads.c which is reference by the lab notes).
  */
 
+#define ONE_SIX 1/6.0
 
 // Global flag
 // Set to true when operating in debug mode to enable verbose logging
@@ -136,7 +137,7 @@ double* poisson_neumann (int n, double *source, int iterations, int threads, flo
                         k_prev = curr[n*n*(k-1) + n*j + i];
                     }
                     
-                    next[n*n*k + n*j + i] = (1/6.0)*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+                    next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
                     // printf("%lf\n", next[n*n*k + n*j + i]);
                     // curr = next;
                 }
