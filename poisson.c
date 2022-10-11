@@ -36,7 +36,7 @@
  * multithreading (see also threads.c which is reference by the lab notes).
  */
 
-#define ONE_SIX 1/6.0
+#define ONE_SIX 1.0/6.0
 
 // Global flag
 // Set to true when operating in debug mode to enable verbose logging
@@ -89,67 +89,84 @@ void* worker (void* pargs)
     int i = 0;
     int j = 0;
     int k = 0;
-    
-   
-    
-    
-            
 
-    for (t = 0; t < args->iterations; t++)
+    int n = args->n;
+    double *curr = args->curr;
+    double *next = args->next;
+    int start = args->start;
+    float delta = args->delta;
+    int end = args->end;
+    double *source = args->source;
+
+    // printf("%d\n", start);
+    // printf("%d\n", end);
+
+
+
+    
+    // for (t = 0; t < args->iterations; t++)
+    // {
+    
+    // for (k = 0; k < args->n; k++)
+    for (k = start; k < end; k++)
     {
-        for (k = 0; k < args->n; k++)
-	{
-	    for (j = 0; j < args->n; j++)
-	    {
-		for (i = 0; i < args->n; i++)
-		{
-                    if (i==0)
-	 	     {
-                        i_next = args->curr[args->n*args->n*k + args->n*j + i+1];
-			 i_prev = i_next;
-                    } else if (i==args->n-1)
-                    {
-                        i_prev = args->curr[args->n*args->n*k + args->n*j + i-1];
-                        i_next = i_prev;
-                    } else
-                    {
-                        i_next = args->curr[args->n*args->n*k + args->n*j + i+1];
-                        i_prev = args->curr[args->n*args->n*k + args->n*j + i-1];
-                    }
-                    if (j==0)
-			        {
-                        j_next = args->curr[args->n*args->n*k + args->n*(j+1) + i];
-				        j_prev = j_next;
-                    } else if (j==args->n-1)
-                    {
-                        j_prev = args->curr[args->n*args->n*k + args->n*(j-1) + i];
-                        j_next = j_prev;
-                    } else
-                    {
-                        j_next = args->curr[args->n*args->n*k + args->n*(j+1) + i];
-                        j_prev = args->curr[args->n*args->n*k + args->n*(j-1) + i];
-                    }
-		    if (k == 0)
-		    {
-                        k_next = args->curr[args->n*args->n*(k+1) + args->n*j + i];
-				        k_prev = k_next;
-                    } else if (k==args->n-1)
-                    {
-                        k_prev = args->curr[args->n*args->n*(k-1) + args->n*j + i];
-                        k_next = k_prev;
-                    } else
-                    {
-                        k_next = args->curr[args->n*args->n*(k+1) + args->n*j + i];
-                        k_prev = args->curr[args->n*args->n*(k-1) + args->n*j + i];
-                    }
-                    
-                    args->next[args->n*args->n*k + args->n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - args->delta*args->delta*args->source[args->n*args->n*k + args->n*j + i]);
-                    
-                    // printf("%lf\n", next[n*n*k + n*j + i]);
-                    // curr = next;
+        for (j = 0; j < n; j++)
+        // for (j = args->start; j < args->end; j++)
+        {
+            for (i = 0; i < n; i++)
+            // for (i = args->start; i < args->end; i++)
+            {
+                if (i==0)
+                {
+                    i_next = curr[n*n*k + n*j + i+1];
+                    i_prev = i_next;
+                } else if (i==n-1)
+                {
+                    i_prev = curr[n*n*k + n*j + i-1];
+                    i_next = i_prev;
+                } else
+                {
+                    i_next = curr[n*n*k + n*j + i+1];
+                    i_prev = curr[n*n*k + n*j + i-1];
                 }
+                if (j==0)
+                {
+                    j_next = curr[n*n*k + n*(j+1) + i];
+                    j_prev = j_next;
+                } else if (j==n-1)
+                {
+                    j_prev = curr[n*n*k + n*(j-1) + i];
+                    j_next = j_prev;
+                } else
+                {
+                    j_next = curr[n*n*k + n*(j+1) + i];
+                    j_prev = curr[n*n*k + n*(j-1) + i];
+                }
+                if (k == 0)
+                {
+                    k_next = curr[n*n*(k+1) + n*j + i];
+                    k_prev = k_next;
+                } else if (k==n-1)
+                {
+                    k_prev =curr[n*n*(k-1) + n*j + i];
+                    k_next = k_prev;
+                } else
+                {
+                    k_next = curr[n*n*(k+1) + n*j + i];
+                    k_prev = curr[n*n*(k-1) + n*j + i];
+                }
+                // printf("%lf\n", i_next);
+                // printf("%lf\n", i_prev);
+                // printf("%lf\n", j_next);
+                // printf("%lf\n", j_prev);
+                // printf("%lf\n", k_next);
+                // printf("%lf\n", k_prev);
+                next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+                // printf("%lf\n", next[n*n*k + n*j + i]);
+                // curr = next;
             }
         }
+        
         // printf("%lf\n", next[n*n*k + n*j + i]);
 
         // for (int x = 0; x < n; ++x)
@@ -164,9 +181,9 @@ void* worker (void* pargs)
 	
 	// memcpy = (curr, next, n*n*n*sizeof(double));
 	
-        double *temp = args->next;
-        args->next = args->curr;
-        args->curr = temp;
+        // double *temp = args->next;
+        // args->next = args->curr;
+        // args->curr = temp;
     }       
 
 
@@ -176,7 +193,7 @@ void* worker (void* pargs)
  
 double* poisson_neumann (int n, double *source, int iterations, int threads, float delta)
 {	
-	
+    int t = 0;
     double range = n;
 
     if (debug)
@@ -204,40 +221,47 @@ double* poisson_neumann (int n, double *source, int iterations, int threads, flo
     
     // Storage for the thread handles and arguments
     // will exist for the entire lifetime of the program.
-    pthread_t threads_index[NUM_THREADS];
-    WorkerArgs args[NUM_THREADS];
-    
-    for (int i = 0; i < NUM_THREADS; i++)
+    for (t = 0; t < iterations; t++)
     {
-        // Fill in the arguments to the worker
+
+        pthread_t threads_index[NUM_THREADS];
+        WorkerArgs args[NUM_THREADS];
         
-        args[i].n = n;
-        args[i].curr = curr; // setting the pointer
-        args[i].next = next;
-        args[i].start = (range * i) / NUM_THREADS;
-        args[i].end = (range * (i + 1)) / NUM_THREADS;
-        args[i].delta = delta;
-        
-        // args[i].curr = curr + (1+(n*i)/NUM_THREADS)*n*n;
-        // args[i].next = next + (1+(n*i)/NUM_THREADS)*n*n;
-        // args[i].length = ((n*(i+1)/NUM_THREADS) - ((n*i)/NUM_THREADS);
-        // args[i].source = source + (1 + (n*i)/NUM_THREADS)*n*n;
-        
-        
-        // Create the worker thread
-        if (pthread_create (&threads_index[i], NULL, &worker, &args[i]) != 0)
+        for (int i = 0; i < NUM_THREADS; i++)
         {
-            fprintf (stderr, "Error creating worker thread!\n");
-            // return EXIT_FAILURE;
-            exit(EXIT_FAILURE);
+            // Fill in the arguments to the worker
+            
+            args[i].n = n;
+            args[i].curr = curr; // setting the pointer
+            args[i].next = next;
+            args[i].start = (range * i) / NUM_THREADS;
+            args[i].end = (range * (i + 1)) / NUM_THREADS;
+            args[i].delta = delta;
+            args[i].iterations = iterations;
+            args[i].source = source;
+
+            
+            // Create the worker thread
+            if (pthread_create (&threads_index[i], NULL, &worker, &args[i]) != 0)
+            {
+                fprintf (stderr, "Error creating worker thread!\n");
+                // return EXIT_FAILURE;
+                exit(EXIT_FAILURE);
+            }
+        }
+
+    
+        double *temp = next;
+        next = curr;
+        curr = temp;
+        // Wait for all the threads to finish using join ()
+        for (int i = 0; i < NUM_THREADS; i++)
+        {
+            pthread_join (threads_index[i], NULL);
         }
     }
 
-    // Wait for all the threads to finish using join ()
-    for (int i = 0; i < NUM_THREADS; i++)
-    {
-        pthread_join (threads_index[i], NULL);
-    }
+    
 	
     // Free one of the buffers and return the correct answer in the other.
     // The caller is now responsible for free'ing the returned pointer.
@@ -256,7 +280,7 @@ double* poisson_neumann (int n, double *source, int iterations, int threads, flo
 int main (int argc, char **argv)
 {
     // Default settings for solver
-    int iterations = 10;
+    int iterations = 1;
     int n = 5;
     int threads = 1;
     float delta = 1;
