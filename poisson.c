@@ -3,7 +3,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 
+#include <unistd.h>
 
 /**
  * poisson.c
@@ -175,7 +177,7 @@ void* worker (void* pargs)
 double* poisson_neumann (int n, double *source, int iterations, int threads, float delta)
 {	
 	
-    double range = n * n * n;
+    double range = n;
 
     if (debug)
     {
@@ -202,7 +204,7 @@ double* poisson_neumann (int n, double *source, int iterations, int threads, flo
     
     // Storage for the thread handles and arguments
     // will exist for the entire lifetime of the program.
-    pthread_t threads[NUM_THREADS];
+    pthread_t threads_index[NUM_THREADS];
     WorkerArgs args[NUM_THREADS];
     
     for (int i = 0; i < NUM_THREADS; i++)
@@ -223,17 +225,18 @@ double* poisson_neumann (int n, double *source, int iterations, int threads, flo
         
         
         // Create the worker thread
-        if (pthread_create (&threads[i], NULL, &worker, &args[i]) != 0)
+        if (pthread_create (&threads_index[i], NULL, &worker, &args[i]) != 0)
         {
             fprintf (stderr, "Error creating worker thread!\n");
-            return EXIT_FAILURE;
+            // return EXIT_FAILURE;
+            exit(EXIT_FAILURE);
         }
     }
 
     // Wait for all the threads to finish using join ()
     for (int i = 0; i < NUM_THREADS; i++)
     {
-        pthread_join (threads[i], NULL);
+        pthread_join (threads_index[i], NULL);
     }
 	
     // Free one of the buffers and return the correct answer in the other.
@@ -255,7 +258,7 @@ int main (int argc, char **argv)
     // Default settings for solver
     int iterations = 10;
     int n = 5;
-    int thread = 1;
+    int threads = 1;
     float delta = 1;
     
     
@@ -300,7 +303,7 @@ int main (int argc, char **argv)
                 return EXIT_FAILURE;
             }
 
-            thread = atoi (argv[++i]);
+            threads = atoi (argv[++i]);
         }
 
         if (strcmp (argv[i], "--debug") == 0)
@@ -327,7 +330,7 @@ int main (int argc, char **argv)
     source[(n * n * n) / 2] = 1;
 
     // Calculate the resulting field with Neumann conditions
-    double *result = poisson_neumann (n, source, iterations, thread, delta);
+    double *result = poisson_neumann (n, source, iterations, threads, delta);
 
     // Print out the middle slice of the cube for validation
     for (int x = 0; x < n; ++x)
