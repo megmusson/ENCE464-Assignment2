@@ -55,21 +55,17 @@ static bool debug = false;
  * @return double*      Solution to Poissons equation.  Caller must free.
  */
  
- #define NUM_THREADS     4
-
 
 typedef struct
 {
-    int thread_id;      // Unique id of the worker thread
     int start;          // Start index of the worker thread
     int end;            // End index of the worker thread
-    int iterations;	 // 
     int n;
     double *curr;
     double *next;
     float delta;
-    int length;
     double *source;
+    int iterations;
 } WorkerArgs;
 
 
@@ -85,7 +81,6 @@ void* worker (void* pargs)
     double k_next = 0;
     double k_prev = 0;
     
-    int t = 0;
     int i = 0;
     int j = 0;
     int k = 0;
@@ -98,94 +93,25 @@ void* worker (void* pargs)
     int end = args->end;
     double *source = args->source;
 
-    // printf("%d\n", start);
-    // printf("%d\n", end);
-
-
-
-    
-    // for (t = 0; t < args->iterations; t++)
-    // {
-    
-    // for (k = 0; k < args->n; k++)
     for (k = start; k < end; k++)
     {
-        for (j = 0; j < n; j++)
-        // for (j = args->start; j < args->end; j++)
+        for (j = 1; j < n-1; j++)
         {
-            for (i = 0; i < n; i++)
-            // for (i = args->start; i < args->end; i++)
+            for (i = 1; i < n-1; i++)
             {
-                if (i==0)
-                {
-                    i_next = curr[n*n*k + n*j + i+1];
-                    i_prev = i_next;
-                } else if (i==n-1)
-                {
-                    i_prev = curr[n*n*k + n*j + i-1];
-                    i_next = i_prev;
-                } else
-                {
-                    i_next = curr[n*n*k + n*j + i+1];
-                    i_prev = curr[n*n*k + n*j + i-1];
-                }
-                if (j==0)
-                {
-                    j_next = curr[n*n*k + n*(j+1) + i];
-                    j_prev = j_next;
-                } else if (j==n-1)
-                {
-                    j_prev = curr[n*n*k + n*(j-1) + i];
-                    j_next = j_prev;
-                } else
-                {
-                    j_next = curr[n*n*k + n*(j+1) + i];
-                    j_prev = curr[n*n*k + n*(j-1) + i];
-                }
-                if (k == 0)
-                {
-                    k_next = curr[n*n*(k+1) + n*j + i];
-                    k_prev = k_next;
-                } else if (k==n-1)
-                {
-                    k_prev =curr[n*n*(k-1) + n*j + i];
-                    k_next = k_prev;
-                } else
-                {
-                    k_next = curr[n*n*(k+1) + n*j + i];
-                    k_prev = curr[n*n*(k-1) + n*j + i];
-                }
-                // printf("%lf\n", i_next);
-                // printf("%lf\n", i_prev);
-                // printf("%lf\n", j_next);
-                // printf("%lf\n", j_prev);
-                // printf("%lf\n", k_next);
-                // printf("%lf\n", k_prev);
+                i_next = curr[n*n*k + n*j + i+1];
+                i_prev = curr[n*n*k + n*j + i-1];
+        
+                j_next = curr[n*n*k + n*(j+1) + i];
+                j_prev = curr[n*n*k + n*(j-1) + i];
+                
+                k_next = curr[n*n*(k+1) + n*j + i];
+                k_prev = curr[n*n*(k-1) + n*j + i];
+
                 next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
-                // printf("%lf\n", next[n*n*k + n*j + i]);
-                // curr = next;
             }
         }
-        
-        // printf("%lf\n", next[n*n*k + n*j + i]);
-
-        // for (int x = 0; x < n; ++x)
-        // {
-        // for (int y = 0; y < n; ++y)
-        //     {
-        //         printf ("%0.5f ", next[((n / 2) * n + y) * n + x]);
-        //     }
-        //     printf ("\n");
-        // }
-
-	
-	// memcpy = (curr, next, n*n*n*sizeof(double));
-	
-        // double *temp = args->next;
-        // args->next = args->curr;
-        // args->curr = temp;
-    }       
-
+    }     
 
     return NULL;
 }
@@ -193,6 +119,16 @@ void* worker (void* pargs)
  
 double* poisson_neumann (int n, double *source, int iterations, int threads, float delta)
 {	
+    double i_next = 0;
+    double i_prev = 0;
+    double j_next = 0;
+    double j_prev = 0;
+    double k_next = 0;
+    double k_prev = 0;
+    
+    int i = 0;
+    int j = 0;
+    int k = 0;
     int t = 0;
     double range = n;
 
@@ -224,23 +160,22 @@ double* poisson_neumann (int n, double *source, int iterations, int threads, flo
     for (t = 0; t < iterations; t++)
     {
 
-        pthread_t threads_index[NUM_THREADS];
-        WorkerArgs args[NUM_THREADS];
+        pthread_t threads_index[threads];
+        WorkerArgs args[threads];
         
-        for (int i = 0; i < NUM_THREADS; i++)
+        for (int i = 0; i < threads; i++)
         {
             // Fill in the arguments to the worker
             
             args[i].n = n;
             args[i].curr = curr; // setting the pointer
             args[i].next = next;
-            args[i].start = (range * i) / NUM_THREADS;
-            args[i].end = (range * (i + 1)) / NUM_THREADS;
+            args[i].start = (range * i) / threads;
+            args[i].end = (range * (i + 1)) / threads;
             args[i].delta = delta;
             args[i].iterations = iterations;
             args[i].source = source;
 
-            
             // Create the worker thread
             if (pthread_create (&threads_index[i], NULL, &worker, &args[i]) != 0)
             {
@@ -250,12 +185,406 @@ double* poisson_neumann (int n, double *source, int iterations, int threads, flo
             }
         }
 
-    
+        // ****************** Initial i plane**************
+        i = 0;
+        for (k = 1; k < n-1; k++)
+        {
+            for (j = 1; j < n-1; j++)
+            {
+                i_next = curr[n*n*k + n*j + i+1];
+                i_prev = i_next;
+                j_next = curr[n*n*k + n*(j+1) + i];
+                j_prev = curr[n*n*k + n*(j-1) + i];
+                k_next = curr[n*n*(k+1) + n*j + i];
+                k_prev = curr[n*n*(k-1) + n*j + i];
+                next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+            }
+        }
+        // Edge cases on initial i plane
+        k = 0;
+        for (j = 1; j < n-1; j++)
+        {
+            k_next = curr[n*n*(k+1) + n*j + i];
+            k_prev = k_next;
+            j_next = curr[n*n*k + n*(j+1) + i];
+            j_prev = curr[n*n*k + n*(j-1) + i];
+            i_next = curr[n*n*k + n*j + i+1];
+            i_prev = i_next;
+            next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        }
+        k = n-1;
+        for (j = 1; j < n-1; j++)
+        {
+            k_prev = curr[n*n*(k-1) + n*j + i];
+            k_next = k_prev;
+            j_next = curr[n*n*k + n*(j+1) + i];
+            j_prev = curr[n*n*k + n*(j-1) + i];
+            i_next = curr[n*n*k + n*j + i+1];
+            i_prev = i_next;
+            next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        }
+        j = 0;
+        for (k = 1; k < n-1; k++)
+        {
+            j_next = curr[n*n*k + n*(j+1) + i];
+            j_prev = j_next;
+            k_next = curr[n*n*(k+1) + n*j + i];
+            k_prev = curr[n*n*(k-1) + n*j + i];
+            i_next = curr[n*n*k + n*j + i+1];
+            i_prev = i_next;
+            next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        }
+        j = n-1;
+        for (k = 1; k < n-1; k++)
+        {
+            j_prev = curr[n*n*k + n*(j-1) + i];
+            j_next = j_prev;
+            k_next = curr[n*n*(k+1) + n*j + i];
+            k_prev = curr[n*n*(k-1) + n*j + i];
+            i_next = curr[n*n*k + n*j + i+1];
+            i_prev = i_next;
+            next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        }
+        // Corner cases for inital i plane
+        j = 0;
+        k = 0;
+        i_next = curr[n*n*k + n*j + i+1];
+        i_prev = i_next;
+        j_next = curr[n*n*k + n*(j+1) + i];
+        j_prev = j_next;
+        k_next = curr[n*n*(k+1) + n*j + i];
+        k_prev = k_next;
+        next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+
+        j = n-1;
+        k = 0;
+        i_next = curr[n*n*k + n*j + i+1];
+        i_prev = i_next;
+        j_prev = curr[n*n*k + n*(j-1) + i];
+        j_next = j_prev;
+        k_next = curr[n*n*(k+1) + n*j + i];
+        k_prev = k_next;
+        next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+
+        j = 0;
+        k = n-1;
+        i_next = curr[n*n*k + n*j + i+1];
+        i_prev = i_next;
+        j_next = curr[n*n*k + n*(j+1) + i];
+        j_prev = j_next;
+        k_prev = curr[n*n*(k-1) + n*j + i];
+        k_next = k_prev;
+        next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+
+        j = n-1;
+        k = n-1;
+        i_next = curr[n*n*k + n*j + i+1];
+        i_prev = i_next;
+        j_prev = curr[n*n*k + n*(j-1) + i];
+        j_next = j_prev;
+        k_prev = curr[n*n*(k-1) + n*j + i];
+        k_next = k_prev;
+        next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+
+
+        // ****************** Final i plane **************
+        i = n-1;
+        for (k = 1; k < n-1; k++)
+        {
+            for (j = 1; j < n-1; j++)
+            {
+                i_prev = curr[n*n*k + n*j + i-1];
+                i_next = i_prev;
+                j_next = curr[n*n*k + n*(j+1) + i];
+                j_prev = curr[n*n*k + n*(j-1) + i];
+                k_next = curr[n*n*(k+1) + n*j + i];
+                k_prev = curr[n*n*(k-1) + n*j + i];
+                next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+            }
+        }
+        // Edge cases for final i plane
+        k = 0;
+        for (j = 1; j < n-1; j++)
+        {
+            k_next = curr[n*n*(k+1) + n*j + i];
+            k_prev = k_next;
+            j_next = curr[n*n*k + n*(j+1) + i];
+            j_prev = curr[n*n*k + n*(j-1) + i];
+            i_prev = curr[n*n*k + n*j + i-1];
+            i_next = i_prev;
+            next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        }
+        k = n-1;
+        for (j = 1; j < n-1; j++)
+        {
+            k_prev = curr[n*n*(k-1) + n*j + i];
+            k_next = k_prev;
+            j_next = curr[n*n*k + n*(j+1) + i];
+            j_prev = curr[n*n*k + n*(j-1) + i];
+            i_prev = curr[n*n*k + n*j + i-1];
+            i_next = i_prev;
+            next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        }
+        j = 0;
+        for (k = 1; k < n-1; k++)
+        {
+            j_next = curr[n*n*k + n*(j+1) + i];
+            j_prev = j_next;
+            k_next = curr[n*n*(k+1) + n*j + i];
+            k_prev = curr[n*n*(k-1) + n*j + i];
+            i_prev = curr[n*n*k + n*j + i-1];
+            i_next = i_prev;
+            next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        }
+        j = n-1;
+        for (k = 1; k < n-1; k++)
+        {
+            j_prev = curr[n*n*k + n*(j-1) + i];
+            j_next = j_prev;
+            k_next = curr[n*n*(k+1) + n*j + i];
+            k_prev = curr[n*n*(k-1) + n*j + i];
+            i_prev = curr[n*n*k + n*j + i-1];
+            i_next = i_prev;
+            next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        }
+        // Corner cases for final i plane
+        j = 0;
+        k = 0;
+        i_prev = curr[n*n*k + n*j + i-1];
+        i_next = i_prev;
+        j_next = curr[n*n*k + n*(j+1) + i];
+        j_prev = j_next;
+        k_next = curr[n*n*(k+1) + n*j + i];
+        k_prev = k_next;
+        next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+
+        j = n-1;
+        k = 0;
+        i_prev = curr[n*n*k + n*j + i-1];
+        i_next = i_prev;
+        j_prev = curr[n*n*k + n*(j-1) + i];
+        j_next = j_prev;
+        k_next = curr[n*n*(k+1) + n*j + i];
+        k_prev = k_next;
+        next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+
+        j = 0;
+        k = n-1;
+        i_prev = curr[n*n*k + n*j + i-1];
+        i_next = i_prev;
+        j_next = curr[n*n*k + n*(j+1) + i];
+        j_prev = j_next;
+        k_prev = curr[n*n*(k-1) + n*j + i];
+        k_next = k_prev;
+        next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+
+        j = n-1;
+        k = n-1;
+        i_prev = curr[n*n*k + n*j + i-1];
+        i_next = i_prev;
+        j_prev = curr[n*n*k + n*(j-1) + i];
+        j_next = j_prev;
+        k_prev = curr[n*n*(k-1) + n*j + i];
+        k_next = k_prev;
+        next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+
+        
+
+        // ****************** Initial j plane**************
+        j = 0; 
+        for (k = 1; k < n-1; k++)
+        {
+            for (i = 1; i < n-1; i++)
+            {
+                j_next = curr[n*n*k + n*(j+1) + i];
+                j_prev = j_next;
+                i_next = curr[n*n*k + n*j + i+1];
+                i_prev = curr[n*n*k + n*j + i-1];
+                k_next = curr[n*n*(k+1) + n*j + i];
+                k_prev = curr[n*n*(k-1) + n*j + i];
+                next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+            }
+        }
+        // Edge cases for initial j plane
+        k = 0;
+        for (i = 1; i < n-1; i++)
+        {
+            k_next = curr[n*n*(k+1) + n*j + i];
+            k_prev = k_next;
+            i_next = curr[n*n*k + n*j + i+1];
+            i_prev = curr[n*n*k + n*j + i-1];
+            j_next = curr[n*n*k + n*(j+1) + i];
+            j_prev = j_next;
+            next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        }
+        k = n-1;
+        for (i = 1; i < n-1; i++)
+        {
+            k_prev = curr[n*n*(k-1) + n*j + i];
+            k_next = k_prev;
+            i_next = curr[n*n*k + n*j + i+1];
+            i_prev = curr[n*n*k + n*j + i-1];
+            j_next = curr[n*n*k + n*(j+1) + i];
+            j_prev = j_next;
+            next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        }
+        // i = 0;
+        // for (k = 1; k < n-1; k++)
+        // {
+        //     k_next = curr[n*n*(k+1) + n*j + i];
+        //     k_prev = curr[n*n*(k-1) + n*j + i];
+        //     i_next = curr[n*n*k + n*j + i+1];
+        //     i_prev = i_next;
+        //     j_next = curr[n*n*k + n*j + i+1];
+        //     j_prev = j_next;
+        //     next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        // }
+        // i = n-1;
+        // for (k = 1; k < n-1; k++)
+        // {
+        //     k_next = curr[n*n*(k+1) + n*j + i];
+        //     k_prev = curr[n*n*(k-1) + n*j + i];
+        //     i_prev = curr[n*n*k + n*j + i+1];
+        //     i_next = i_prev;
+        //     j_next = curr[n*n*k + n*j + i+1];
+        //     j_prev = j_next;
+        //     next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        // }
+        // // Corner cases for inital i plane
+        // i = 0;
+        // k = 0;
+        // i_next = curr[n*n*k + n*j + i+1];
+        // i_prev = i_next;
+        // j_next = curr[n*n*k + n*j + i+1];
+        // j_prev = j_next;
+        // k_next = curr[n*n*k + n*j + i+1];
+        // k_prev = k_next;
+        // next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+
+        // i = n-1;
+        // k = 0;
+        // i_prev = curr[n*n*k + n*j + i+1];
+        // i_next = i_prev;
+        // j_next = curr[n*n*k + n*j + i+1];
+        // j_prev = j_next;
+        // k_next = curr[n*n*k + n*j + i+1];
+        // k_prev = k_next;
+        // next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+
+        // i = 0;
+        // k = n-1;
+        // i_next = curr[n*n*k + n*j + i+1];
+        // i_prev = i_next;
+        // j_next = curr[n*n*k + n*j + i+1];
+        // j_prev = j_next;
+        // k_prev = curr[n*n*k + n*j + i-1];
+        // k_next = k_prev;
+        // next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+
+        // i = n-1;
+        // k = n-1;
+        // i_prev = curr[n*n*k + n*j + i+1];
+        // i_next = i_prev;
+        // j_next = curr[n*n*k + n*j + i+1];
+        // j_prev = j_next;
+        // k_prev = curr[n*n*k + n*j + i+1];
+        // k_next = k_prev;
+        // next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+
+        
+
+
+
+
+        // ****************** Final j plane**************
+        j = n-1; 
+        for (k = 1; k < n-1; k++)
+        {
+            for (i = 1; i < n-1; i++)
+            {
+                j_prev = curr[n*n*k + n*(j-1) + i];
+                j_next = j_prev;
+                i_next = curr[n*n*k + n*j + i+1];
+                i_prev = curr[n*n*k + n*j + i-1];
+                k_next = curr[n*n*(k+1) + n*j + i];
+                k_prev = curr[n*n*(k-1) + n*j + i];
+                next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+            }
+        }
+        // Edge cases for Final j plane
+        k = 0;
+        for (i = 1; i < n-1; i++)
+        {
+            k_next = curr[n*n*(k+1) + n*j + i];
+            k_prev = k_next;
+            i_next = curr[n*n*k + n*j + i+1];
+            i_prev = curr[n*n*k + n*j + i-1];
+            j_prev = curr[n*n*k + n*(j-1) + i];
+            j_next = j_prev;
+            next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        }
+        k = n-1;
+        for (i = 1; i < n-1; i++)
+        {
+            k_prev = curr[n*n*(k-1) + n*j + i];
+            k_next = k_prev;
+            i_next = curr[n*n*k + n*j + i+1];
+            i_prev = curr[n*n*k + n*j + i-1];
+            j_prev = curr[n*n*k + n*(j-1) + i];
+            j_next = j_prev;
+            next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        }
+        
+        // ****************** Inital k plane**************
+        k = 0;
+        // for (j = 1; j < n-1; j++)
+        // {
+        //     for (i = 1; i < n-1; i++)
+        //     {
+        //         k_next = curr[n*n*(k+1) + n*j + i];
+        //         k_prev = k_next;
+        //         i_next = curr[n*n*k + n*j + i+1];
+        //         i_prev = curr[n*n*k + n*j + i-1];
+        //         j_next = curr[n*n*k + n*(j+1) + i];
+        //         j_prev = curr[n*n*k + n*(j-1) + i];
+        //         next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+        //     }
+        // }
+
+        for (j = 1; j < n-1; j++)
+        {
+            for (i = 1; i < n-1; i++)
+            {
+                k_next = curr[n*n*(k+1) + n*j + i];
+                k_prev = k_next;
+                i_next = curr[n*n*k + n*j + i+1];
+                i_prev = curr[n*n*k + n*j + i-1];
+                j_next = curr[n*n*k + n*(j+1) + i];
+                j_prev = curr[n*n*k + n*(j-1) + i];
+                next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+            }
+        }
+        // ****************** Final k plane**************
+        k = n-1;
+        for (j = 1; j < n-1; j++)
+        {
+            for (i = 1; i < n-1; i++)
+            {
+                k_prev = curr[n*n*(k-1) + n*j + i];
+                k_next = k_prev;
+                i_next = curr[n*n*k + n*j + i+1];
+                i_prev = curr[n*n*k + n*j + i-1];
+                j_next = curr[n*n*k + n*(j+1) + i];
+                j_prev = curr[n*n*k + n*(j-1) + i];
+                next[n*n*k + n*j + i] = ONE_SIX*(i_next + i_prev + j_next + j_prev + k_next + k_prev - delta*delta*source[n*n*k + n*j + i]);
+            }
+        }
+        
         double *temp = next;
         next = curr;
         curr = temp;
         // Wait for all the threads to finish using join ()
-        for (int i = 0; i < NUM_THREADS; i++)
+        for (int i = 0; i < threads; i++)
         {
             pthread_join (threads_index[i], NULL);
         }
@@ -357,14 +686,24 @@ int main (int argc, char **argv)
     double *result = poisson_neumann (n, source, iterations, threads, delta);
 
     // Print out the middle slice of the cube for validation
+    // for (int x = 0; x < n; ++x)
+    // {
+    //     for (int y = 0; y < n; ++y)
+    //     {
+    //         printf ("%0.5f ", result[((n / 2) * n + y) * n + x]);
+    //     }
+    //     printf ("\n");
+    // }
+
     for (int x = 0; x < n; ++x)
     {
         for (int y = 0; y < n; ++y)
         {
-            printf ("%0.5f ", result[((n / 2) * n + y) * n + x]);
+            printf ("%0.5f ", result[(y * n + x) * n + (n/2)]);
         }
         printf ("\n");
     }
+
 
     free (source);
     free (result);
